@@ -1,0 +1,4 @@
+'''
+MARCADAS CURVAS
+Python script
+'''
