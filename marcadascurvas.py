@@ -78,6 +78,42 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
     return dxf_bytes
 
+def circle_from_3_points(p1, p2, p3):
+    """
+    Compute the center and radius of the circle passing through
+    3 non-collinear points p1, p2, p3.
+    Returns (center_x, center_y, radius, start_angle_deg, end_angle_deg)
+    with angles for an arc traveling from p1 → p3 → p2.
+    """
+
+    (x1, y1) = p1
+    (x2, y2) = p2
+    (x3, y3) = p3
+
+    # Calculate the circumcenter
+    temp = x2**2 + y2**2
+    bc = (x1**2 + y1**2 - temp) / 2
+    cd = (temp - x3**2 - y3**2) / 2
+
+    det = (x1 - x2) * (y2 - y3) - (x2 - x3) * (y1 - y2)
+
+    if abs(det) < 1.0e-10:
+        raise ValueError("Points are collinear — cannot define an arc.")
+
+    cx = (bc * (y2 - y3) - cd * (y1 - y2)) / det
+    cy = ((x1 - x2) * cd - (x2 - x3) * bc) / det
+
+    # Radius
+    r = math.hypot(cx - x1, cy - y1)
+
+    # Angles for the arc
+    ang1 = math.degrees(math.atan2(y1 - cy, x1 - cx))
+    ang_mid = math.degrees(math.atan2(y3 - cy, x3 - cx))
+    ang2 = math.degrees(math.atan2(y2 - cy, x2 - cx))
+
+    return cx, cy, r, ang1, ang2
+
+
 
 def main():
     st.title("DXF Generator")
