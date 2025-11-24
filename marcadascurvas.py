@@ -2,7 +2,7 @@ import streamlit as st
 import ezdxf
 from io import BytesIO, StringIO
 
-def create_rectangle_dxf_bytes(width: float, height: float) -> bytes:
+def create_rectangle_dxf_bytes_rectangle(width: float, height: float) -> bytes:
     """
     Create a DXF drawing containing a rectangle drawn with 4 LINE entities,
     return the DXF file content as bytes.
@@ -31,6 +31,50 @@ def create_rectangle_dxf_bytes(width: float, height: float) -> bytes:
     text_value = text_stream.getvalue()
     encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
     dxf_bytes = text_value.encode(encoding)
+
+    return dxf_bytes
+
+def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -> bytes:
+    """
+    Create DXF with:
+    - bottom line p1→p2
+    - right line p2→p3
+    - top is an arc through p3 → p5 → p4
+    - left line p4→p1
+
+    Returns DXF as bytes (for Streamlit download).
+    """
+
+    doc = ezdxf.new(dxfversion="R2010", setup=True)
+    msp = doc.modelspace()
+
+    # Base rectangle points
+    p1 = (0.0, 0.0)
+    p2 = (float(width), 0.0)
+    p3 = (float(width), float(height))
+    p4 = (0.0, float(height))
+
+    # Midpoint with deflection
+    p5 = (float(width) / 2.0, float(height) - float(deflection))
+
+    # Add the straight lines
+    msp.add_line(p1, p2)
+    msp.add_line(p2, p3)
+    msp.add_line(p4, p1)
+
+    # --- Add the arc p3 → p5 → p4 ---
+    cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
+
+    # Draw the arc FROM p3 TO p4 passing through p5
+    # ezdxf draws arcs CCW, so we ensure correct direction:
+    msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
+
+    # --- Write DXF into a text buffer ---
+    text_stream = StringIO()
+    doc.write(text_stream)
+
+    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
+    dxf_bytes = text_stream.getvalue().encode(encoding)
 
     return dxf_bytes
 
@@ -94,7 +138,7 @@ def main():
                 out_name = f"{file_name}_{i:0{pad}d}.dxf"
 
             # create DXF bytes
-            dxf_bytes = create_rectangle_dxf_bytes(width, height)
+            dxf_bytes = create_rectangle_dxf_bytes(width, height, deflection)
 
             # provide download button for each file
             st.download_button(
