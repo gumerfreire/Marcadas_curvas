@@ -92,10 +92,10 @@ def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> byt
     msp = doc.modelspace()
 
     # Puntos base de rectangulo
-    p1 = (float(height), 0.0)
+    p1 = (0.0, float(width))
     p2 = (0.0, 0.0)
-    p3 = (float(width), 0.0)
-    p4 = (float(width), float(height))
+    p3 = (float(height), 0.0)
+    p4 = (float(height), float(width))
 
     # Punto central de flecha
     p5 = (float(width)  - float(deflection), float(height) / 2.0)
