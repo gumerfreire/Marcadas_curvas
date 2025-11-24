@@ -25,10 +25,9 @@ def create_rectangle_dxf(width, height):
 
     # Save into memory buffer
     buffer = BytesIO()
-    doc.write(buffer)
+    doc.write_stream(buffer)  # <-- FIX
     buffer.seek(0)
     return buffer
-
 
 def main():
     st.title("DXF Generator")
