@@ -78,55 +78,50 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
     return dxf_bytes
 
+import math
+
 def circle_from_3_points(p1, p2, p3):
     """
-    Robust circle calculation from 3 points.
-    Returns (cx, cy, r, start_angle, end_angle).
-    Raises ValueError only if absolutely impossible.
+    Compute the center and radius of the circle passing through 3 points.
+    Returns (cx, cy, r, start_angle_deg, end_angle_deg)
+    Angles in degrees for DXF ARC (start_angle → end_angle CCW).
     """
-    (x1, y1) = p1
-    (x2, y2) = p2
-    (x3, y3) = p3
 
-    # Determinant
-    det = (x1*(y2 - y3) +
-           x2*(y3 - y1) +
-           x3*(y1 - y2))
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
 
+    # determinant
+    det = 2 * (x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))
     if abs(det) < 1e-9:
-        raise ValueError("Points are collinear or nearly collinear")
+        raise ValueError("Points are collinear")
 
-    A = x1**2 + y1**2
-    B = x2**2 + y2**2
-    C = x3**2 + y3**2
+    # circumcenter
+    a = x1**2 + y1**2
+    b = x2**2 + y2**2
+    c = x3**2 + y3**2
 
-    cx = (A*(y2 - y3) + B*(y3 - y1) + C*(y1 - y2)) / (2 * det)
-    cy = (A*(x3 - x2) + B*(x1 - x3) + C*(x2 - x1)) / (2 * det)
+    cx = (a*(y2 - y3) + b*(y3 - y1) + c*(y1 - y2)) / det
+    cy = (a*(x3 - x2) + b*(x1 - x3) + c*(x2 - x1)) / det
 
-    # Radius
     r = math.hypot(cx - x1, cy - y1)
 
-    # Angles
-    start = math.degrees(math.atan2(y1 - cy, x1 - cx))
-    mid   = math.degrees(math.atan2(y3 - cy, x3 - cx))
-    end   = math.degrees(math.atan2(y2 - cy, x2 - cx))
+    # angles for DXF ARC
+    start_ang = math.degrees(math.atan2(y1 - cy, x1 - cx))
+    mid_ang   = math.degrees(math.atan2(y3 - cy, x3 - cx))
+    end_ang   = math.degrees(math.atan2(y2 - cy, x2 - cx))
 
-    # Ensure arc passes through p1 -> p3 -> p2 (CCW)
-    # If mid-angle is not between start & end, swap angles
+    # ensure arc goes from p1 -> p3 -> p2
     def is_between(a, b, c):
-        a = (a + 360) % 360
-        b = (b + 360) % 360
-        c = (c + 360) % 360
+        a, b, c = a % 360, b % 360, c % 360
         if a < c:
             return a < b < c
         return b > a or b < c
 
-    if not is_between(start, mid, end):
-        start, end = end, start
+    if not is_between(start_ang, mid_ang, end_ang):
+        start_ang, end_ang = end_ang, start_ang
 
-    return cx, cy, r, start, end
-
-
+    return cx, cy, r, start_ang, end_ang
 
 def main():
     st.title("DXF Generator")
