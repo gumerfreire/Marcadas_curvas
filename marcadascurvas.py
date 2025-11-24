@@ -5,12 +5,13 @@ import math
 
 # Parametros dee configuración
 
-roll_sanearborde = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros
-conf_altominimo = 30 # Alto mínimo del último tramo de tela atravesada. Si es menor se elimina.
+roll_sanearborde = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
+conf_altominimo = 50 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
+conf_empalme = 10 # Solape de telas para empalme en mm.
 
 # Funciones 
 
-def create_rectangle_dxf_bytes_rectangle(width: float, height: float) -> bytes:
+def create_dxf_rectangletraves_bytes(width: float, height: float) -> bytes:
     """
     Create a DXF drawing containing a rectangle drawn with 4 LINE entities,
     return the DXF file content as bytes.
@@ -42,7 +43,7 @@ def create_rectangle_dxf_bytes_rectangle(width: float, height: float) -> bytes:
 
     return dxf_bytes
 
-def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -> bytes:
+def create_dxf_rectangletravescurva_bytes(width: float, height: float, deflection: float) -> bytes:
     """
     Create DXF with:
     - bottom line p1→p2
@@ -233,36 +234,38 @@ def main():
             )
             
         else:
-            #codetraves
-
-            # roll_width comes from number_input; make sure it's int
-            try:
-                n_files = int(roll_width)
-            except Exception:
-                n_files = 1
-
+            # Confeccion al traves
+            n_files = math.ceil(height / (roll_width-roll_sanearborde))
             st.success(f"Generando {n_files} marcadas en DXF...")
-
-            # if multiple files, use padded suffixes name_01.dxf ... name_NN.dxf
             pad = 2 if n_files > 1 else 0
+            height_rectangles = roll_width-roll_sanearborde # Alturas de marcadas inferiores
+            height_remaining = height - ((n_files-1)*roll_width) - ((n_files-1)*conf_empalme)
+            if (height_remaining-deflection) < conf_altominimo: height_remaining = conf_altominimo + deflection
 
-            # collect download buttons (multiple possible)
-            for i in range(1, n_files + 1):
-                if n_files == 1:
-                    out_name = f"{file_name}.dxf"
-                else:
+            for i in range(1, n_files+1):
+
+                if i < n_files:
+                    # paños rectangulares
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                    dxf_bytes = create_dxf_rectangletraves_bytes(width, height_rectangles)
+                    st.download_button(
+                        label=f"Descargar marcada {out_name}",
+                        data=dxf_bytes,
+                        file_name=out_name,
+                        mime="application/dxf"
+                    )
 
-                # create DXF bytes
-                dxf_bytes = create_rectangle_dxf_bytes(width, height, deflection)
+                elif i == n_files:
+                    #paño con curva
+                    out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_rectangles, deflection)
+                    st.download_button(
+                        label=f"Descargar marcada {out_name}",
+                        data=dxf_bytes,
+                        file_name=out_name,
+                        mime="application/dxf"
+                    )
 
-                # provide download button for each file
-                st.download_button(
-                    label=f"Descargar marcada {out_name}",
-                    data=dxf_bytes,
-                    file_name=out_name,
-                    mime="application/dxf"
-                )
 
 if __name__ == "__main__":
     main()
