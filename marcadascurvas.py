@@ -80,38 +80,51 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
 def circle_from_3_points(p1, p2, p3):
     """
-    Compute the center and radius of the circle passing through
-    3 non-collinear points p1, p2, p3.
-    Returns (center_x, center_y, radius, start_angle_deg, end_angle_deg)
-    with angles for an arc traveling from p1 → p3 → p2.
+    Robust circle calculation from 3 points.
+    Returns (cx, cy, r, start_angle, end_angle).
+    Raises ValueError only if absolutely impossible.
     """
-
     (x1, y1) = p1
     (x2, y2) = p2
     (x3, y3) = p3
 
-    # Calculate the circumcenter
-    temp = x2**2 + y2**2
-    bc = (x1**2 + y1**2 - temp) / 2
-    cd = (temp - x3**2 - y3**2) / 2
+    # Determinant
+    det = (x1*(y2 - y3) +
+           x2*(y3 - y1) +
+           x3*(y1 - y2))
 
-    det = (x1 - x2) * (y2 - y3) - (x2 - x3) * (y1 - y2)
+    if abs(det) < 1e-9:
+        raise ValueError("Points are collinear or nearly collinear")
 
-    if abs(det) < 1.0e-10:
-        raise ValueError("Points are collinear — cannot define an arc.")
+    A = x1**2 + y1**2
+    B = x2**2 + y2**2
+    C = x3**2 + y3**2
 
-    cx = (bc * (y2 - y3) - cd * (y1 - y2)) / det
-    cy = ((x1 - x2) * cd - (x2 - x3) * bc) / det
+    cx = (A*(y2 - y3) + B*(y3 - y1) + C*(y1 - y2)) / (2 * det)
+    cy = (A*(x3 - x2) + B*(x1 - x3) + C*(x2 - x1)) / (2 * det)
 
     # Radius
     r = math.hypot(cx - x1, cy - y1)
 
-    # Angles for the arc
-    ang1 = math.degrees(math.atan2(y1 - cy, x1 - cx))
-    ang_mid = math.degrees(math.atan2(y3 - cy, x3 - cx))
-    ang2 = math.degrees(math.atan2(y2 - cy, x2 - cx))
+    # Angles
+    start = math.degrees(math.atan2(y1 - cy, x1 - cx))
+    mid   = math.degrees(math.atan2(y3 - cy, x3 - cx))
+    end   = math.degrees(math.atan2(y2 - cy, x2 - cx))
 
-    return cx, cy, r, ang1, ang2
+    # Ensure arc passes through p1 -> p3 -> p2 (CCW)
+    # If mid-angle is not between start & end, swap angles
+    def is_between(a, b, c):
+        a = (a + 360) % 360
+        b = (b + 360) % 360
+        c = (c + 360) % 360
+        if a < c:
+            return a < b < c
+        return b > a or b < c
+
+    if not is_between(start, mid, end):
+        start, end = end, start
+
+    return cx, cy, r, start, end
 
 
 
