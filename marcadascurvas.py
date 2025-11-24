@@ -171,15 +171,22 @@ def circle_from_3_points(p1, p2, p3):
 def main():
     st.markdown("### Generador de marcadas con curva")
 
-    st.write("Introduce los datos para generar automáticamente las marcadas con curva para corte de tela. Dependiendo de las medidas de tela y del ancho rollo se generará marcada al hilo o al través. Si son necesarios empalmes se generará una marcada para cada parte de tela.")
+    st.write(
+        "Introduce los datos para generar automáticamente las marcadas con curva "
+        "para corte de tela. Dependiendo de las medidas de tela y del ancho rollo "
+        "se generará marcada al hilo o al través. Si son necesarios empalmes se generará "
+        "una marcada para cada parte de tela."
+    )
 
     # Nombre de archivo DXF a generar y flecha de tubo
     file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
-    deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f")
+    deflection = st.number_input(
+        "Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f"
+    )
 
     st.markdown("---")
 
-    # Input
+    # Inputs
     col1, col2 = st.columns(2)
 
     with col1:
@@ -189,10 +196,16 @@ def main():
     with col2:
         width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
         height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
-        
 
-    if st.button("Generar marcadas"):
+    # Initialize session state for DXF files
+    if "dxf_files" not in st.session_state:
         st.session_state.dxf_files = []
+
+    # Generate DXFs
+    if st.button("Generar marcadas"):
+        # Clear previous files
+        st.session_state.dxf_files = []
+
         # Validaciones básicas
         if not file_name:
             st.error("Por favor, introduce un nombre para el archivo que se generará.")
@@ -201,64 +214,66 @@ def main():
         if width <= 0 or height <= 0:
             st.error("El ancho y alto deben ser mayores a 0.")
             st.stop()
-        
+
         if deflection <= 0:
             st.error("La flecha debe ser mayor a 0.")
             st.stop()
 
         # Conversión de unidades
-
-        if units == "Centímetros": #convertir centímetros a milímetros
-            width = width * 10
-            height = height * 10
-            roll_width = roll_width * 10
-        elif units == "Inches": # Convertir inches a milímetros
-            width = width * 10 * 2.54
-            height = height * 10 * 2.54
-            roll_width = roll_width * 10 * 2.54
+        if units == "Centímetros":  # convertir centímetros a milímetros
+            width_mm = width * 10
+            height_mm = height * 10
+            roll_width_mm = roll_width * 10
+        elif units == "Inches":  # Convertir inches a milímetros
+            width_mm = width * 10 * 2.54
+            height_mm = height * 10 * 2.54
+            roll_width_mm = roll_width * 10 * 2.54
+        else:
+            width_mm = width
+            height_mm = height
+            roll_width_mm = roll_width
 
         # Generación de marcadas
-
-        if width <= (roll_width - roll_sanearborde):
+        if width_mm <= (roll_width_mm - roll_sanearborde):
             # Confeccion al hilo
             st.success(f"Generando marcada para corte al hilo en DXF...")
-            dxf_bytes = create_dxf_hilo_bytes(width, height, deflection)
+            dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
             out_name = f"{file_name}.dxf"
             st.session_state.dxf_files.append((out_name, dxf_bytes))
-            
+
         else:
             # Confeccion al traves
-            n_files = math.ceil(height / (roll_width-roll_sanearborde))
+            n_files = math.ceil(height_mm / (roll_width_mm - roll_sanearborde))
             st.success(f"Generando {n_files} marcadas en DXF...")
             pad = 2 if n_files > 1 else 0
-            height_rectangles = roll_width-roll_sanearborde # Alturas de marcadas inferiores
-            height_remaining = height - ((n_files-1)*roll_width) - ((n_files-1)*conf_empalme)
-            if (height_remaining-deflection) < conf_altominimo: height_remaining = conf_altominimo + deflection
+            height_rectangles = roll_width_mm - roll_sanearborde  # Alturas de marcadas inferiores
+            height_remaining = height_mm - ((n_files - 1) * roll_width_mm) - ((n_files - 1) * conf_empalme)
+            if (height_remaining - deflection) < conf_altominimo:
+                height_remaining = conf_altominimo + deflection
 
-            for i in range(1, n_files+1):
-
+            for i in range(1, n_files + 1):
                 if i < n_files:
                     # paños rectangulares
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                    dxf_bytes = create_dxf_rectangletraves_bytes(width, height_rectangles)
+                    dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_rectangles)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
-
                 elif i == n_files:
-                    #paño con curva
+                    # paño con curva
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_remaining, deflection)
+                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width_mm, height_remaining, deflection)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
 
+    # Display download buttons (always from session state)
+    if st.session_state.dxf_files:
         st.markdown("---")
-
-        # Botones download
         for name, buffer in st.session_state.dxf_files:
             st.download_button(
                 label=f"Download {name}",
-                data=buffer,
+                data=BytesIO(buffer),
                 file_name=name,
                 mime="application/dxf"
-        )
+            )
+
 
 if __name__ == "__main__":
     main()
