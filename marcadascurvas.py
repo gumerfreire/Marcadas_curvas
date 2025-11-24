@@ -249,15 +249,15 @@ def main():
                     dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_remaining, deflection)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
 
-    st.markdown("---")
+        st.markdown("---")
 
-    # Botones download
-    for name, buffer in st.session_state.dxf_files:
-        st.download_button(
-            label=f"Download {name}",
-            data=buffer,
-            file_name=name,
-            mime="application/dxf"
+        # Botones download
+        for name, buffer in st.session_state.dxf_files:
+            st.download_button(
+                label=f"Download {name}",
+                data=buffer,
+                file_name=name,
+                mime="application/dxf"
         )
 
 if __name__ == "__main__":
