@@ -3,23 +3,12 @@ import ezdxf
 from io import BytesIO, StringIO
 import math
 
-'''
-MARCADAS CURVAS
-@gumer freire, 24.11.2025
-
-Código Python para integración en Streamlit como app.
-
-Genera las marcadas para máquinas de corte de tejido en función de los datos introdducidos.
-El código devuelve uno o varios archivox DXF 2010.
-'''
-
 # Parametros dee configuración
 roll_edgetrim = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
 conf_remainingminimum = 50 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
 conf_seamoverlap = 10 # Solape de telas para empalme en mm.
 
 # Funciones 
-
 def create_dxf_rectangletraves_bytes(width: float, height: float) -> bytes:
     '''
     Genera el archivo DXF de marcada con curva para corte a través.
