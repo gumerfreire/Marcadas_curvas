@@ -3,40 +3,50 @@ import ezdxf
 from io import BytesIO, StringIO
 import math
 
-# Parametros dee configuración
+'''
+MARCADAS CURVAS
+@gumer freire, 24.11.2025
 
-roll_sanearborde = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
-conf_altominimo = 50 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
-conf_empalme = 10 # Solape de telas para empalme en mm.
+Código Python para integración en Streamlit como app.
+
+Genera las marcadas para máquinas de corte de tejido en función de los datos introdducidos.
+El código devuelve uno o varios archivox DXF 2010.
+'''
+
+# Parametros dee configuración
+roll_edgetrim = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
+conf_remainingminimum = 50 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
+conf_seamoverlap = 10 # Solape de telas para empalme en mm.
 
 # Funciones 
 
 def create_dxf_rectangletraves_bytes(width: float, height: float) -> bytes:
-    """
-    Create a DXF drawing containing a rectangle drawn with 4 LINE entities,
-    return the DXF file content as bytes.
-    """
-    # create document (R2010 is fine)
+    '''
+    Genera el archivo DXF de marcada con curva para corte a través.
+    Esta función genera la parte superior con curva.
+    con los datos introduciros width, height, deflection.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
+    '''
+    # Crear documento (DXF2010)
     doc = ezdxf.new(dxfversion="R2010", setup=True)
     msp = doc.modelspace()
 
-    # rectangle corners (origin at 0,0)
+    # Puntos del rectángulo
     p1 = (0.0, 0.0)
     p2 = (float(width), 0.0)
     p3 = (float(width), float(height))
     p4 = (0.0, float(height))
 
-    # add four lines (explicitly create separate LINE entities)
+    # Añadir líneas
     msp.add_line(p1, p2)
     msp.add_line(p2, p3)
     msp.add_line(p3, p4)
     msp.add_line(p4, p1)
 
-    # write to a text stream (ezdxf.write() writes text)
+    # Guardar a cadena de texto
     text_stream = StringIO()
-    doc.write(text_stream)  # writes str to the text stream
+    doc.write(text_stream)
 
-    # get string and encode to bytes using the document's output encoding
     text_value = text_stream.getvalue()
     encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
     dxf_bytes = text_value.encode(encoding)
@@ -44,41 +54,38 @@ def create_dxf_rectangletraves_bytes(width: float, height: float) -> bytes:
     return dxf_bytes
 
 def create_dxf_rectangletravescurva_bytes(width: float, height: float, deflection: float) -> bytes:
-    """
-    Create DXF with:
-    - bottom line p1→p2
-    - right line p2→p3
-    - top is an arc through p3 → p5 → p4
-    - left line p4→p1
+    '''
+    Genera el archivo DXF de marcada con curva para corte a través.
+    Esta función genera las partes rectangulares inferiores.
+    con los datos introduciros width, height.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
+    '''
 
-    Returns DXF as bytes (for Streamlit download).
-    """
-
+    # Crear documento (DXF2010)
     doc = ezdxf.new(dxfversion="R2010", setup=True)
     msp = doc.modelspace()
 
-    # Base rectangle points
+    # Puntos del rectángulo
     p1 = (0.0, 0.0)
     p2 = (float(width), 0.0)
     p3 = (float(width), float(height))
     p4 = (0.0, float(height))
 
-    # Midpoint with deflection
+    # Punto medio de arco
     p5 = (float(width) / 2.0, float(height) - float(deflection))
 
-    # Add the straight lines
+    # Añadir líneas
     msp.add_line(p1, p2)
     msp.add_line(p2, p3)
     msp.add_line(p4, p1)
 
-    # --- Add the arc p3 → p5 → p4 ---
+    # Añadir arco p3 → p5 → p4
     cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
 
-    # Draw the arc FROM p3 TO p4 passing through p5
-    # ezdxf draws arcs CCW, so we ensure correct direction:
+    # Dibujar arco CCW
     msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
 
-    # --- Write DXF into a text buffer ---
+    # Guardar a cadena de texto
     text_stream = StringIO()
     doc.write(text_stream)
 
@@ -88,7 +95,11 @@ def create_dxf_rectangletravescurva_bytes(width: float, height: float, deflectio
     return dxf_bytes
 
 def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> bytes:
-
+    '''
+    Genera el archivo DXF de marcada con curva para corte al hilo,
+    con los datos introduciros width, height, deflection.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
+    '''
     doc = ezdxf.new(dxfversion="R2010", setup=True)
     msp = doc.modelspace()
 
@@ -101,19 +112,16 @@ def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> byt
     # Punto central de flecha
     p5 = (float(height)  - float(deflection), float(width) / 2.0)
 
-    # Dibujod e lineas rectas
+    # Dibujo de lineas rectas
     msp.add_line(p1, p2)
     msp.add_line(p2, p3)
     msp.add_line(p4, p1)
 
-    # --- Add the arc p3 → p5 → p4 ---
+    # Añadir arco p3 → p5 → p4
     cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
-
-    # Draw the arc FROM p3 TO p4 passing through p5
-    # ezdxf draws arcs CCW, so we ensure correct direction:
     msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
 
-    # --- Write DXF into a text buffer ---
+    # Guardar a cadena de texto
     text_stream = StringIO()
     doc.write(text_stream)
 
@@ -125,21 +133,22 @@ def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> byt
 
 def circle_from_3_points(p1, p2, p3):
     """
-    Compute the center and radius of the circle passing through 3 points.
-    Returns (cx, cy, r, start_angle_deg, end_angle_deg)
-    Angles in degrees for DXF ARC (start_angle → end_angle CCW).
+    Función auxiliar.
+    Calcula el centro y radio del círculo que pasa por los 3 puntos dados.
+    Devuelve (cx,cy, r, start_angle_deg, end_angle_deg)
+    Ángulos en grados para DXF ARC (ángulo inicial → ángulo final CCW)
     """
 
     x1, y1 = p1
     x2, y2 = p2
     x3, y3 = p3
 
-    # determinant
+    # determinante
     det = 2 * (x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))
     if abs(det) < 1e-9:
         raise ValueError("Points are collinear")
 
-    # circumcenter
+    # circumcentro
     a = x1**2 + y1**2
     b = x2**2 + y2**2
     c = x3**2 + y3**2
@@ -149,12 +158,12 @@ def circle_from_3_points(p1, p2, p3):
 
     r = math.hypot(cx - x1, cy - y1)
 
-    # angles for DXF ARC
+    # ángulos para DXF ARC
     start_ang = math.degrees(math.atan2(y1 - cy, x1 - cx))
     mid_ang   = math.degrees(math.atan2(y3 - cy, x3 - cx))
     end_ang   = math.degrees(math.atan2(y2 - cy, x2 - cx))
 
-    # ensure arc goes from p1 -> p3 -> p2
+    # ordenar para que el arco vaya de p1 -> p3 -> p2
     def is_between(a, b, c):
         a, b, c = a % 360, b % 360, c % 360
         if a < c:
@@ -197,11 +206,11 @@ def main():
         width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
         height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
 
-    # Initialize session state for DXF files
+    # Inicializar sesión para mantener botones Descarga DXF
     if "dxf_files" not in st.session_state:
         st.session_state.dxf_files = []
 
-    # Generate DXFs
+    # Generar DXFs
     if st.button("Generar marcadas"):
         # Clear previous files
         st.session_state.dxf_files = []
@@ -234,22 +243,22 @@ def main():
             roll_width_mm = roll_width
 
         # Generación de marcadas
-        if width_mm <= (roll_width_mm - roll_sanearborde):
-            # Confeccion al hilo
-            st.success(f"Generando marcada para corte al hilo en DXF...")
+        if width_mm <= (roll_width_mm - roll_edgetrim):
+            # Confección al hilo
+            st.success(f"Generando marcada para confección al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
             out_name = f"{file_name}.dxf"
             st.session_state.dxf_files.append((out_name, dxf_bytes))
 
         else:
-            # Confeccion al traves
-            n_files = math.ceil(height_mm / (roll_width_mm - roll_sanearborde))
-            st.success(f"Generando {n_files} marcadas en DXF...")
+            # Confección al través
+            n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
+            st.success(f"Generando {n_files} marcadas para confección atravesada en DXF...")
             pad = 2 if n_files > 1 else 0
-            height_rectangles = roll_width_mm - roll_sanearborde  # Alturas de marcadas inferiores
-            height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_sanearborde)) + ((n_files - 1) * conf_empalme)
-            if (height_remaining - deflection) < conf_altominimo:
-                height_remaining = conf_altominimo + deflection
+            height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
+            height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
+            if (height_remaining - deflection) < conf_remainingminimum:
+                height_remaining = conf_remainingminimum + deflection
 
             for i in range(1, n_files + 1):
                 if i < n_files:
@@ -263,12 +272,12 @@ def main():
                     dxf_bytes = create_dxf_rectangletravescurva_bytes(width_mm, height_remaining, deflection)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
 
-    # Display download buttons (always from session state)
+    # Mostrar botones de descarga de DXFs
     if st.session_state.dxf_files:
         st.markdown("---")
         for name, buffer in st.session_state.dxf_files:
             st.download_button(
-                label=f"Download {name}",
+                label=f"Descargar marcada {name}",
                 data=BytesIO(buffer),
                 file_name=name,
                 mime="application/dxf"
