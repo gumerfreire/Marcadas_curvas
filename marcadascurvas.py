@@ -194,6 +194,7 @@ def main():
     st.markdown("---")
 
     if st.button("Generar marcadas"):
+        st.session_state.dxf_files = []
         # Validaciones básicas
         if not file_name:
             st.error("Por favor, introduce un nombre para el archivo que se generará.")
@@ -225,13 +226,7 @@ def main():
             st.success(f"Generando marcada para corte al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width, height, deflection)
             out_name = f"{file_name}.dxf"
-            # provide download button for each file
-            st.download_button(
-                label=f"Descargar marcada {out_name}",
-                data=dxf_bytes,
-                file_name=out_name,
-                mime="application/dxf"
-            )
+            st.session_state.dxf_files.append((out_name, dxf_bytes))
             
         else:
             # Confeccion al traves
@@ -248,24 +243,22 @@ def main():
                     # paños rectangulares
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
                     dxf_bytes = create_dxf_rectangletraves_bytes(width, height_rectangles)
-                    st.download_button(
-                        label=f"Descargar marcada {out_name}",
-                        data=dxf_bytes,
-                        file_name=out_name,
-                        mime="application/dxf"
-                    )
+                    st.session_state.dxf_files.append((out_name, dxf_bytes))
 
                 elif i == n_files:
                     #paño con curva
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_rectangles, deflection)
-                    st.download_button(
-                        label=f"Descargar marcada {out_name}",
-                        data=dxf_bytes,
-                        file_name=out_name,
-                        mime="application/dxf"
-                    )
+                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_remaining, deflection)
+                    st.session_state.dxf_files.append((out_name, dxf_bytes))
 
+    # Botones download
+    for name, buffer in st.session_state.dxf_files:
+        st.download_button(
+            label=f"Download {name}",
+            data=buffer,
+            file_name=name,
+            mime="application/dxf"
+        )
 
 if __name__ == "__main__":
     main()
