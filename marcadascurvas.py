@@ -1,6 +1,7 @@
 import streamlit as st
 import ezdxf
 from io import BytesIO, StringIO
+import math
 
 def create_rectangle_dxf_bytes_rectangle(width: float, height: float) -> bytes:
     """
@@ -78,7 +79,7 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
     return dxf_bytes
 
-import math
+
 
 def circle_from_3_points(p1, p2, p3):
     """
@@ -124,18 +125,16 @@ def circle_from_3_points(p1, p2, p3):
     return cx, cy, r, start_ang, end_ang
 
 def main():
-    st.title("DXF Generator")
+    st.title("## Generador de marcadas con curva")
 
-    # Explanation
-    st.markdown("### Explanation")
-    st.write("explanation")  # you will replace this text later
+    st.write("Introduce los datos para generar automáticamente las marcadas con curva para corte de tela. Dependiendo de las medidas de tela y del ancho rollo se generará marcada al hilo o al través. Si sin necesarios empalmes se generará una marcada para cada parte de corte.")
     st.markdown("---")
 
     # Unit selector
-    units = st.selectbox("Select Units", options=["Inches", "Centimeters"], index=0)
+    units = st.selectbox("Unidad de medida", options=["Inches", "Centímetros"], index=0)
 
     # File name (full width)
-    file_name = st.text_input("Nombre de archivo")
+    file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
 
     st.markdown("---")
 
@@ -143,25 +142,30 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        width = st.number_input("Width", min_value=0.0, step=0.1, format="%.3f")
+        width = st.number_input("Ancho tela (OF)", min_value=0.0, step=0.1, format="%.3f")
         # roll_width is an integer (no decimals)
-        roll_width = st.number_input("Roll Width", min_value=1, step=1, value=1, format="%d")
+        roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
 
     with col2:
-        height = st.number_input("Height", min_value=0.0, step=0.1, format="%.3f")
-        deflection = st.number_input("Deflection", min_value=0.0, step=0.01, value=10.0, format="%.3f")
+        height = st.number_input("Alto tela (OF)", min_value=0.0, step=0.1, format="%.3f")
+        deflection = st.number_input("Flecha de tubo", min_value=0.0, step=0.01, value=10.0, format="%.3f")
 
     st.markdown("---")
 
-    if st.button("Generate DXF"):
+    if st.button("Generar marcadas"):
         # basic validation
         if not file_name:
-            st.error("Please enter a file name in 'Nombre de archivo'.")
+            st.error("Por favor, introduce un nombre para el archivo que se generará.")
             st.stop()
 
         if width <= 0 or height <= 0:
-            st.error("Width and Height must be greater than zero.")
+            st.error("El ancho y alto deben ser mayores a 0.")
             st.stop()
+        
+        if deflection <= 0:
+            st.error("La flecha debe ser mayor a 0.")
+            st.stop()
+
 
         # roll_width comes from number_input; make sure it's int
         try:
@@ -169,7 +173,7 @@ def main():
         except Exception:
             n_files = 1
 
-        st.success(f"Generating {n_files} DXF file(s)...")
+        st.success(f"Generando {n_files} marcadas en DXF...")
 
         # if multiple files, use padded suffixes name_01.dxf ... name_NN.dxf
         pad = 2 if n_files > 1 else 0
