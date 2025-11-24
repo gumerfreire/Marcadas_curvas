@@ -247,7 +247,7 @@ def main():
             st.success(f"Generando {n_files} marcadas en DXF...")
             pad = 2 if n_files > 1 else 0
             height_rectangles = roll_width_mm - roll_sanearborde  # Alturas de marcadas inferiores
-            height_remaining = height_mm - ((n_files - 1) * roll_width_mm) - ((n_files - 1) * conf_empalme)
+            height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_sanearborde)) + ((n_files - 1) * conf_empalme)
             if (height_remaining - deflection) < conf_altominimo:
                 height_remaining = conf_altominimo + deflection
 
