@@ -208,11 +208,11 @@ def main():
 
         # Conversión de unidades
 
-        if deflection == "Centímetros": #convertir centímetros a milímetros
+        if units == "Centímetros": #convertir centímetros a milímetros
             width = width * 10
             height = height * 10
             roll_width = roll_width * 10
-        elif deflection == "Inches": # Convertir inches a milímetros
+        elif units == "Inches": # Convertir inches a milímetros
             width = width * 10 * 2.54
             height = height * 10 * 2.54
             roll_width = roll_width * 10 * 2.54
