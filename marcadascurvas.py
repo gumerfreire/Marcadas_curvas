@@ -3,6 +3,13 @@ import ezdxf
 from io import BytesIO, StringIO
 import math
 
+# Parametros dee configuración
+
+roll_sanearborde = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros
+conf_altominimo = 30 # Alto mínimo del último tramo de tela atravesada. Si es menor se elimina.
+
+# Funciones 
+
 def create_rectangle_dxf_bytes_rectangle(width: float, height: float) -> bytes:
     """
     Create a DXF drawing containing a rectangle drawn with 4 LINE entities,
@@ -79,6 +86,42 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
     return dxf_bytes
 
+def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> bytes:
+
+    doc = ezdxf.new(dxfversion="R2010", setup=True)
+    msp = doc.modelspace()
+
+    # Puntos base de rectangulo
+    p1 = (float(height), 0.0)
+    p2 = (0.0, 0.0)
+    p3 = (float(width), 0.0)
+    p4 = (float(width), float(height))
+
+    # Punto central de flecha
+    p5 = (float(width)  - float(deflection), float(height) / 2.0)
+
+    # Dibujod e lineas rectas
+    msp.add_line(p1, p2)
+    msp.add_line(p2, p3)
+    msp.add_line(p4, p1)
+
+    # --- Add the arc p3 → p5 → p4 ---
+    cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
+
+    # Draw the arc FROM p3 TO p4 passing through p5
+    # ezdxf draws arcs CCW, so we ensure correct direction:
+    msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
+
+    # --- Write DXF into a text buffer ---
+    text_stream = StringIO()
+    doc.write(text_stream)
+
+    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
+    dxf_bytes = text_stream.getvalue().encode(encoding)
+
+    return dxf_bytes
+
+
 def circle_from_3_points(p1, p2, p3):
     """
     Compute the center and radius of the circle passing through 3 points.
@@ -122,6 +165,8 @@ def circle_from_3_points(p1, p2, p3):
 
     return cx, cy, r, start_ang, end_ang
 
+# Main
+
 def main():
     st.markdown("### Generador de marcadas con curva")
 
@@ -163,31 +208,21 @@ def main():
 
         # Conversión de unidades
 
-        if deflection == "Centímetros":
+        if deflection == "Centímetros": #convertir centímetros a milímetros
             width = width * 10
             height = height * 10
-            roll_width
+            roll_width = roll_width * 10
+        elif deflection == "Inches": # Convertir inches a milímetros
+            width = width * 10 * 2.54
+            height = height * 10 * 2.54
+            roll_width = roll_width * 10 * 2.54
 
-        # roll_width comes from number_input; make sure it's int
-        try:
-            n_files = int(roll_width)
-        except Exception:
-            n_files = 1
+        # Generación de marcadas
 
-        st.success(f"Generando {n_files} marcadas en DXF...")
-
-        # if multiple files, use padded suffixes name_01.dxf ... name_NN.dxf
-        pad = 2 if n_files > 1 else 0
-
-        # collect download buttons (multiple possible)
-        for i in range(1, n_files + 1):
-            if n_files == 1:
-                out_name = f"{file_name}.dxf"
-            else:
-                out_name = f"{file_name}_{i:0{pad}d}.dxf"
-
-            # create DXF bytes
-            dxf_bytes = create_rectangle_dxf_bytes(width, height, deflection)
+        if width <= (roll_width - roll_sanearborde):
+            # Confeccion al hilo
+            st.success(f"Generando marcada para corte al hilo en DXF...")
+            dxf_bytes = create_dxf_hilo_bytes(width, height, deflection)
 
             # provide download button for each file
             st.download_button(
@@ -196,6 +231,38 @@ def main():
                 file_name=out_name,
                 mime="application/dxf"
             )
+            
+        else:
+            #codetraves
+
+            # roll_width comes from number_input; make sure it's int
+            try:
+                n_files = int(roll_width)
+            except Exception:
+                n_files = 1
+
+            st.success(f"Generando {n_files} marcadas en DXF...")
+
+            # if multiple files, use padded suffixes name_01.dxf ... name_NN.dxf
+            pad = 2 if n_files > 1 else 0
+
+            # collect download buttons (multiple possible)
+            for i in range(1, n_files + 1):
+                if n_files == 1:
+                    out_name = f"{file_name}.dxf"
+                else:
+                    out_name = f"{file_name}_{i:0{pad}d}.dxf"
+
+                # create DXF bytes
+                dxf_bytes = create_rectangle_dxf_bytes(width, height, deflection)
+
+                # provide download button for each file
+                st.download_button(
+                    label=f"Descargar marcada {out_name}",
+                    data=dxf_bytes,
+                    file_name=out_name,
+                    mime="application/dxf"
+                )
 
 if __name__ == "__main__":
     main()
