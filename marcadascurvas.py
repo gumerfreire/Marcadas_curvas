@@ -191,8 +191,6 @@ def main():
         height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
         
 
-    st.markdown("---")
-
     if st.button("Generar marcadas"):
         st.session_state.dxf_files = []
         # Validaciones básicas
@@ -250,6 +248,8 @@ def main():
                     out_name = f"{file_name}_{i:0{pad}d}.dxf"
                     dxf_bytes = create_dxf_rectangletravescurva_bytes(width, height_remaining, deflection)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
+
+    st.markdown("---")
 
     # Botones download
     for name, buffer in st.session_state.dxf_files:
