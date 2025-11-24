@@ -79,8 +79,6 @@ def create_rectangle_dxf_bytes(width: float, height: float, deflection: float) -
 
     return dxf_bytes
 
-
-
 def circle_from_3_points(p1, p2, p3):
     """
     Compute the center and radius of the circle passing through 3 points.
@@ -125,35 +123,32 @@ def circle_from_3_points(p1, p2, p3):
     return cx, cy, r, start_ang, end_ang
 
 def main():
-    st.markdown("## Generador de marcadas con curva")
+    st.markdown("### Generador de marcadas con curva")
 
-    st.write("Introduce los datos para generar automáticamente las marcadas con curva para corte de tela. Dependiendo de las medidas de tela y del ancho rollo se generará marcada al hilo o al través. Si sin necesarios empalmes se generará una marcada para cada parte de corte.")
-    st.markdown("---")
+    st.write("Introduce los datos para generar automáticamente las marcadas con curva para corte de tela. Dependiendo de las medidas de tela y del ancho rollo se generará marcada al hilo o al través. Si son necesarios empalmes se generará una marcada para cada parte de tela.")
 
-    # Unit selector
-    units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
-
-    # File name (full width)
+    # Nombre de archivo DXF a generar y flecha de tubo
     file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
+    deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f")
 
     st.markdown("---")
 
-    # Numeric inputs
+    # Input
     col1, col2 = st.columns(2)
 
     with col1:
-        width = st.number_input("Ancho tela (OF)", min_value=0.0, step=0.1, format="%.2f")
-        # roll_width is an integer (no decimals)
+        units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
         roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
 
     with col2:
-        height = st.number_input("Alto tela (OF)", min_value=0.0, step=0.1, format="%.2f")
-        deflection = st.number_input("Flecha de tubo", min_value=0.0, step=0.01, value=10.0, format="%.1f")
+        width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
+        height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
+        
 
     st.markdown("---")
 
     if st.button("Generar marcadas"):
-        # basic validation
+        # Validaciones básicas
         if not file_name:
             st.error("Por favor, introduce un nombre para el archivo que se generará.")
             st.stop()
@@ -166,6 +161,12 @@ def main():
             st.error("La flecha debe ser mayor a 0.")
             st.stop()
 
+        # Conversión de unidades
+
+        if deflection == "Centímetros":
+            width = width * 10
+            height = height * 10
+            roll_width
 
         # roll_width comes from number_input; make sure it's int
         try:
