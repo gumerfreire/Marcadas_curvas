@@ -125,13 +125,13 @@ def circle_from_3_points(p1, p2, p3):
     return cx, cy, r, start_ang, end_ang
 
 def main():
-    st.title("## Generador de marcadas con curva")
+    st.markdown("## Generador de marcadas con curva")
 
     st.write("Introduce los datos para generar automáticamente las marcadas con curva para corte de tela. Dependiendo de las medidas de tela y del ancho rollo se generará marcada al hilo o al través. Si sin necesarios empalmes se generará una marcada para cada parte de corte.")
     st.markdown("---")
 
     # Unit selector
-    units = st.selectbox("Unidad de medida", options=["Inches", "Centímetros"], index=0)
+    units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
 
     # File name (full width)
     file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
@@ -142,13 +142,13 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        width = st.number_input("Ancho tela (OF)", min_value=0.0, step=0.1, format="%.3f")
+        width = st.number_input("Ancho tela (OF)", min_value=0.0, step=0.1, format="%.2f")
         # roll_width is an integer (no decimals)
         roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
 
     with col2:
-        height = st.number_input("Alto tela (OF)", min_value=0.0, step=0.1, format="%.3f")
-        deflection = st.number_input("Flecha de tubo", min_value=0.0, step=0.01, value=10.0, format="%.3f")
+        height = st.number_input("Alto tela (OF)", min_value=0.0, step=0.1, format="%.2f")
+        deflection = st.number_input("Flecha de tubo", min_value=0.0, step=0.01, value=10.0, format="%.1f")
 
     st.markdown("---")
 
@@ -190,7 +190,7 @@ def main():
 
             # provide download button for each file
             st.download_button(
-                label=f"Download {out_name}",
+                label=f"Descargar marcada {out_name}",
                 data=dxf_bytes,
                 file_name=out_name,
                 mime="application/dxf"
