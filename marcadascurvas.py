@@ -223,7 +223,7 @@ def main():
             # Confeccion al hilo
             st.success(f"Generando marcada para corte al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width, height, deflection)
-
+            out_name = f"{file_name}.dxf"
             # provide download button for each file
             st.download_button(
                 label=f"Descargar marcada {out_name}",
