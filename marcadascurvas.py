@@ -98,7 +98,7 @@ def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> byt
     p4 = (float(height), float(width))
 
     # Punto central de flecha
-    p5 = (float(width)  - float(deflection), float(height) / 2.0)
+    p5 = (float(height)  - float(deflection), float(width) / 2.0)
 
     # Dibujod e lineas rectas
     msp.add_line(p1, p2)
