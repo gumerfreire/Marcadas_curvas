@@ -1,95 +1,108 @@
 import streamlit as st
 import ezdxf
-from io import BytesIO
+from io import BytesIO, StringIO
 
-def create_rectangle_dxf(width, height):
+def create_rectangle_dxf_bytes(width: float, height: float) -> bytes:
     """
-    Creates a DXF file in memory containing a rectangle
-    drawn using 4 line entities.
-    Returns the DXF data as bytes.
+    Create a DXF drawing containing a rectangle drawn with 4 LINE entities,
+    return the DXF file content as bytes.
     """
-    doc = ezdxf.new(dxfversion="R2010")
+    # create document (R2010 is fine)
+    doc = ezdxf.new(dxfversion="R2010", setup=True)
     msp = doc.modelspace()
 
-    # Rectangle corners
-    p1 = (0, 0)
-    p2 = (width, 0)
-    p3 = (width, height)
-    p4 = (0, height)
+    # rectangle corners (origin at 0,0)
+    p1 = (0.0, 0.0)
+    p2 = (float(width), 0.0)
+    p3 = (float(width), float(height))
+    p4 = (0.0, float(height))
 
-    # Draw the 4 lines
+    # add four lines (explicitly create separate LINE entities)
     msp.add_line(p1, p2)
     msp.add_line(p2, p3)
     msp.add_line(p3, p4)
     msp.add_line(p4, p1)
 
-    # Save into memory buffer
-    buffer = BytesIO()
-    doc.write_stream(buffer)  # <-- FIX
-    buffer.seek(0)
-    return buffer
+    # write to a text stream (ezdxf.write() writes text)
+    text_stream = StringIO()
+    doc.write(text_stream)  # writes str to the text stream
+
+    # get string and encode to bytes using the document's output encoding
+    text_value = text_stream.getvalue()
+    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
+    dxf_bytes = text_value.encode(encoding)
+
+    return dxf_bytes
+
 
 def main():
     st.title("DXF Generator")
 
-    # --- Explanation Text ---
+    # Explanation
     st.markdown("### Explanation")
-    st.write("explanation")   # <- You will replace this text later
+    st.write("explanation")  # you will replace this text later
     st.markdown("---")
 
-    # --- Unit Selector ---
-    units = st.selectbox(
-        "Select Units",
-        options=["Inches", "Centimeters"],
-        index=0
-    )
+    # Unit selector
+    units = st.selectbox("Select Units", options=["Inches", "Centimeters"], index=0)
 
-    # --- File Name Input ---
+    # File name (full width)
     file_name = st.text_input("Nombre de archivo")
 
     st.markdown("---")
 
-    # --- Numeric Inputs ---
+    # Numeric inputs
     col1, col2 = st.columns(2)
 
     with col1:
-        width = st.number_input("Width", min_value=0.0, step=0.1)
-        roll_width = st.number_input("Roll Width", min_value=1, step=1)  # integer
+        width = st.number_input("Width", min_value=0.0, step=0.1, format="%.3f")
+        # roll_width is an integer (no decimals)
+        roll_width = st.number_input("Roll Width", min_value=1, step=1, value=1, format="%d")
 
     with col2:
-        height = st.number_input("Height", min_value=0.0, step=0.1)
-        deflection = st.number_input("Deflection", min_value=0.0, step=0.01, value=10.0)
+        height = st.number_input("Height", min_value=0.0, step=0.1, format="%.3f")
+        deflection = st.number_input("Deflection", min_value=0.0, step=0.01, value=10.0, format="%.3f")
 
     st.markdown("---")
 
-    # --- Generate Button ---
     if st.button("Generate DXF"):
-
+        # basic validation
         if not file_name:
             st.error("Please enter a file name in 'Nombre de archivo'.")
-            return
+            st.stop()
 
-        st.success("Generating files...")
+        if width <= 0 or height <= 0:
+            st.error("Width and Height must be greater than zero.")
+            st.stop()
 
-        # Generate each DXF
-        for i in range(1, roll_width + 1):
+        # roll_width comes from number_input; make sure it's int
+        try:
+            n_files = int(roll_width)
+        except Exception:
+            n_files = 1
 
-            # Determine filename
-            if roll_width == 1:
-                final_name = f"{file_name}.dxf"
+        st.success(f"Generating {n_files} DXF file(s)...")
+
+        # if multiple files, use padded suffixes name_01.dxf ... name_NN.dxf
+        pad = 2 if n_files > 1 else 0
+
+        # collect download buttons (multiple possible)
+        for i in range(1, n_files + 1):
+            if n_files == 1:
+                out_name = f"{file_name}.dxf"
             else:
-                final_name = f"{file_name}_{i:02d}.dxf"
+                out_name = f"{file_name}_{i:0{pad}d}.dxf"
 
-            dxf_data = create_rectangle_dxf(width, height)
+            # create DXF bytes
+            dxf_bytes = create_rectangle_dxf_bytes(width, height)
 
-            # Provide a download button
+            # provide download button for each file
             st.download_button(
-                label=f"Download {final_name}",
-                data=dxf_data,
-                file_name=final_name,
+                label=f"Download {out_name}",
+                data=dxf_bytes,
+                file_name=out_name,
                 mime="application/dxf"
             )
-
 
 if __name__ == "__main__":
     main()
