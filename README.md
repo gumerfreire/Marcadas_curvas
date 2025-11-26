@@ -1,2 +1,2 @@
 # Marcadas_curvas
-Python script to generate DXF files automatically for fabric cutting machines
+App para Streamlit. Genera archivos dxf para corte de tela.
