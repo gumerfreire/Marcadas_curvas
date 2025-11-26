@@ -237,7 +237,7 @@ def main():
             roll_width_mm = roll_width
 
         # Generación de marcadas
-        if width_mm <= (roll_width_mm - roll_edgetrim) and confection="Hilo o través según medida":
+        if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
             # Confección al hilo
             st.success(f"Generando marcada para confección al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
