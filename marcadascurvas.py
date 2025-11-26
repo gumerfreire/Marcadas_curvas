@@ -178,20 +178,25 @@ def main():
 
     # Nombre de archivo DXF a generar y flecha de tubo
     file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
-    deflection = st.number_input(
-        "Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f"
-    )
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f")
+    
+    with col2:
+        confection = st.selectbox("Confección:", options=["Hilo o través según medida", "Forzar confección atravesada"], index=0)
+
 
     st.markdown("---")
 
     # Inputs
-    col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
 
-    with col1:
+    with col3:
         units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
         roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
 
-    with col2:
+    with col4:
         width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
         height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
 
@@ -232,7 +237,7 @@ def main():
             roll_width_mm = roll_width
 
         # Generación de marcadas
-        if width_mm <= (roll_width_mm - roll_edgetrim):
+        if width_mm <= (roll_width_mm - roll_edgetrim) and confection="Hilo o través según medida":
             # Confección al hilo
             st.success(f"Generando marcada para confección al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
