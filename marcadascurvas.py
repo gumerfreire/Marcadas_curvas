@@ -135,7 +135,7 @@ def circle_from_3_points(p1, p2, p3):
     # determinante
     det = 2 * (x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))
     if abs(det) < 1e-9:
-        raise ValueError("Points are collinear")
+        raise ValueError("Puntos colineales")
 
     # circumcentro
     a = x1**2 + y1**2
