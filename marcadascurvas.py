@@ -1,3 +1,12 @@
+'''
+MARCADAS CURVAS
+
+App para Streamlit escrita en Python.
+Dibuja marcadas para máquinas de corte.
+
+Gumer Freire, 2025
+'''
+
 import streamlit as st
 import ezdxf
 from io import BytesIO, StringIO
@@ -105,10 +114,12 @@ def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> byt
     msp.add_line(p1, p2)
     msp.add_line(p2, p3)
     msp.add_line(p4, p1)
-
-    # Añadir arco p3 → p5 → p4
-    cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
-    msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
+    if deflection == 0:
+        msp.add_line(p3, p4)
+    else:
+        # Añadir arco p3 → p5 → p4
+        cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
+        msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
 
     # Guardar a cadena de texto
     text_stream = StringIO()
@@ -218,8 +229,8 @@ def main():
             st.error("El ancho y alto deben ser mayores a 0.")
             st.stop()
 
-        if deflection <= 0:
-            st.error("La flecha debe ser mayor a 0.")
+        if deflection < 0:
+            st.error("La flecha debe ser mayor o igual a 0.")
             st.stop()
 
         # Conversión de unidades
@@ -239,7 +250,10 @@ def main():
         # Generación de marcadas
         if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
             # Confección al hilo
-            st.success(f"Generando marcada para confección al hilo en DXF...")
+            if deflection == 0:
+                st.success(f"Generando marcada sin curva para confección al hilo en DXF...")
+            else:
+                st.success(f"Generando marcada curva para confección al hilo en DXF...")
             dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
             out_name = f"{file_name}.dxf"
             st.session_state.dxf_files.append((out_name, dxf_bytes))
@@ -247,7 +261,10 @@ def main():
         else:
             # Confección al través
             n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
-            st.success(f"Generando {n_files} marcadas para confección atravesada en DXF...")
+            if deflection == 0:
+                st.success(f"Generando {n_files} marcadas sin curva para confección atravesada en DXF...")
+            else:
+                st.success(f"Generando {n_files} marcadas con curva para confección atravesada en DXF...")
             pad = 2 if n_files > 1 else 0
             height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
             height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
@@ -261,10 +278,16 @@ def main():
                     dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_rectangles)
                     st.session_state.dxf_files.append((out_name, dxf_bytes))
                 elif i == n_files:
-                    # paño con curva
-                    out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                    dxf_bytes = create_dxf_rectangletravescurva_bytes(width_mm, height_remaining, deflection)
-                    st.session_state.dxf_files.append((out_name, dxf_bytes))
+                    if deflection == 0:
+                        # paño sin curva
+                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                        dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_remaining, deflection)
+                        st.session_state.dxf_files.append((out_name, dxf_bytes))
+                    else:
+                        # paño con curva
+                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                        dxf_bytes = create_dxf_rectangletravescurva_bytes(width_mm, height_remaining, deflection)
+                        st.session_state.dxf_files.append((out_name, dxf_bytes))
 
     # Mostrar botones de descarga de DXFs
     if st.session_state.dxf_files:
