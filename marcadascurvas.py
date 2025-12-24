@@ -281,7 +281,7 @@ def main():
                     if deflection == 0:
                         # paño sin curva
                         out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_remaining, deflection)
+                        dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_remaining)
                         st.session_state.dxf_files.append((out_name, dxf_bytes))
                     else:
                         # paño con curva
