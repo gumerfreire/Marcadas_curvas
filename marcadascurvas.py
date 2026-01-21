@@ -113,7 +113,7 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
         msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
 
     # Rotar geometría en caso de confeccion al hilo:
-    if alhilo == true:
+    if alhilo == True:
         msp = rotate_hilo(msp, width)
     
     # Guardar a cadena de texto
@@ -176,7 +176,7 @@ def dxf_marcada_cremallera(width: float, height: float, deflection: float, perim
     msp.add_line(p9, p10)
 
     # Rotar geometría en caso de confeccion al hilo:
-    if alhilo == true:
+    if alhilo == True:
         msp = rotate_hilo(msp, width)
     
     # Guardar a cadena de texto
