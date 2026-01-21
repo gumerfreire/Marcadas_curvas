@@ -104,7 +104,7 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
     msp.add_line(p4, p1)
 
     if deflection == 0:
-        msp.add_line(p4, p1)
+        msp.add_line(p3, p4)
     elif deflection > 0:
         # Punto medio de arco
         p5 = (float(width) / 2.0, float(height) - float(deflection))
@@ -193,7 +193,7 @@ def dxf_marcada_cremallera(width: float, height: float, deflection: float, perim
 # Main
 
 def main():
-    st.markdown("### Generador de marcadas con curva")
+    st.markdown("### Generador de marcadas con curva / ZIP")
 
     st.write(
         "Introduce los datos para generar automáticamente las marcadas con curva "
