@@ -97,10 +97,10 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
     p3 = (float(width), float(height))
     p4 = (0.0, float(height))
 
-        # Añadir líneas
-        msp.add_line(p1, p2)
-        msp.add_line(p2, p3)
-        msp.add_line(p4, p1)
+    # Añadir líneas
+    msp.add_line(p1, p2)
+    msp.add_line(p2, p3)
+    msp.add_line(p4, p1)
 
     if deflection == 0:
         msp.add_line(p4, p1)
