@@ -80,7 +80,7 @@ def rotate_hilo(msp, disp):
     
     return msp
 
-def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhilo=false: bool) -> bytes:
+def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhilo: bool = False) -> bytes:
     '''
     Genera el archivo DXF de marcada rectangular con o sin curva.
     Implementa la opción de girar la marcada para dirección al hilo.
@@ -125,7 +125,7 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
 
     return dxf_bytes
 
-def dxf_marcada_cremallera(width: float, height: float, deflection: float, perimetro_tubo: float, alhilo=false: bool) -> bytes:
+def dxf_marcada_cremallera(width: float, height: float, deflection: float, perimetro_tubo: float, alhilo: bool = False) -> bytes:
     '''
     Genera el archivo DXF de marcada con o sin curva para corte cremallera.
     Genera el recortee superior para primera vuelta del tubo.
