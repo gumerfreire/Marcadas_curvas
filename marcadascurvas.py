@@ -11,6 +11,7 @@ import streamlit as st
 import ezdxf
 from io import BytesIO, StringIO
 import math
+from ezdxf.math import Matrix44
 
 # Parametros dee configuración
 roll_edgetrim = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
