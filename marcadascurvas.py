@@ -313,7 +313,7 @@ def main():
                 perimetro = 250
 
             if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
-                dxf_bytes = dxf_marcada_rectangular(width_mm, height_mm, deflection, perimetro, alhilo=True)
+                dxf_bytes = dxf_marcada_cremallera(width_mm, height_mm, deflection, perimetro, alhilo=True)
                 st.session_state.dxf_files.append((out_name, dxf_bytes))
             else:
                 pass
