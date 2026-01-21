@@ -14,122 +14,8 @@ import math
 
 # Parametros dee configuración
 roll_edgetrim = 20 # Margen para saneamiento de borde de rollo de tela, en milímetros.
-conf_remainingminimum = 50 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
+conf_remainingminimum = 100 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
 conf_seamoverlap = 10 # Solape de telas para empalme en mm.
-
-# Funciones 
-def create_dxf_rectangletraves_bytes(width: float, height: float) -> bytes:
-    '''
-    Genera el archivo DXF de marcada con curva para corte a través.
-    Esta función genera la parte superior con curva.
-    con los datos introduciros width, height, deflection.
-    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
-    '''
-    # Crear documento (DXF2010)
-    doc = ezdxf.new(dxfversion="R2010", setup=True)
-    msp = doc.modelspace()
-
-    # Puntos del rectángulo
-    p1 = (0.0, 0.0)
-    p2 = (float(width), 0.0)
-    p3 = (float(width), float(height))
-    p4 = (0.0, float(height))
-
-    # Añadir líneas
-    msp.add_line(p1, p2)
-    msp.add_line(p2, p3)
-    msp.add_line(p3, p4)
-    msp.add_line(p4, p1)
-
-    # Guardar a cadena de texto
-    text_stream = StringIO()
-    doc.write(text_stream)
-
-    text_value = text_stream.getvalue()
-    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
-    dxf_bytes = text_value.encode(encoding)
-
-    return dxf_bytes
-
-def create_dxf_rectangletravescurva_bytes(width: float, height: float, deflection: float) -> bytes:
-    '''
-    Genera el archivo DXF de marcada con curva para corte a través.
-    Esta función genera las partes rectangulares inferiores.
-    con los datos introduciros width, height.
-    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
-    '''
-
-    # Crear documento (DXF2010)
-    doc = ezdxf.new(dxfversion="R2010", setup=True)
-    msp = doc.modelspace()
-
-    # Puntos del rectángulo
-    p1 = (0.0, 0.0)
-    p2 = (float(width), 0.0)
-    p3 = (float(width), float(height))
-    p4 = (0.0, float(height))
-
-    # Punto medio de arco
-    p5 = (float(width) / 2.0, float(height) - float(deflection))
-
-    # Añadir líneas
-    msp.add_line(p1, p2)
-    msp.add_line(p2, p3)
-    msp.add_line(p4, p1)
-
-    # Añadir arco p3 → p5 → p4
-    cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
-
-    # Dibujar arco CCW
-    msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
-
-    # Guardar a cadena de texto
-    text_stream = StringIO()
-    doc.write(text_stream)
-
-    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
-    dxf_bytes = text_stream.getvalue().encode(encoding)
-
-    return dxf_bytes
-
-def create_dxf_hilo_bytes(width: float, height: float, deflection: float) -> bytes:
-    '''
-    Genera el archivo DXF de marcada con curva para corte al hilo,
-    con los datos introduciros width, height, deflection.
-    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
-    '''
-    doc = ezdxf.new(dxfversion="R2010", setup=True)
-    msp = doc.modelspace()
-
-    # Puntos base de rectangulo
-    p1 = (0.0, float(width))
-    p2 = (0.0, 0.0)
-    p3 = (float(height), 0.0)
-    p4 = (float(height), float(width))
-
-    # Punto central de flecha
-    p5 = (float(height)  - float(deflection), float(width) / 2.0)
-
-    # Dibujo de lineas rectas
-    msp.add_line(p1, p2)
-    msp.add_line(p2, p3)
-    msp.add_line(p4, p1)
-    if deflection == 0:
-        msp.add_line(p3, p4)
-    else:
-        # Añadir arco p3 → p5 → p4
-        cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
-        msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
-
-    # Guardar a cadena de texto
-    text_stream = StringIO()
-    doc.write(text_stream)
-
-    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
-    dxf_bytes = text_stream.getvalue().encode(encoding)
-
-    return dxf_bytes
-
 
 def circle_from_3_points(p1, p2, p3):
     """
@@ -175,6 +61,134 @@ def circle_from_3_points(p1, p2, p3):
 
     return cx, cy, r, start_ang, end_ang
 
+def rotate_hilo(msp, disp):
+    '''
+    Función auxiliar.
+    Rota la geometría para adaptar la marcada a la dirección de corte al hilo.
+    
+    msp: Modelspace de EZDXF
+    disp: Desplazamiento vertical de la geometría para volvera colocarla en el punto 0,0
+    '''
+
+    angle_deg = -90
+    tx, ty = 0, disp
+    transform = Matrix44.z_rotate(math.radians(angle_deg)) @ Matrix44.translate(tx, ty, 0)
+    for e in msp:
+        # only transform entities that implement transform()
+        if hasattr(e, "transform"):
+            e.transform(transform)
+    
+    return msp
+
+def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhilo=false: bool) -> bytes:
+    '''
+    Genera el archivo DXF de marcada rectangular con o sin curva.
+    Implementa la opción de girar la marcada para dirección al hilo.
+    con los datos introduciros width, height.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
+    '''
+    # Crear documento (DXF2010)
+    doc = ezdxf.new(dxfversion="R2010", setup=True)
+    msp = doc.modelspace()
+
+    # Puntos del rectángulo
+    p1 = (0.0, 0.0)
+    p2 = (float(width), 0.0)
+    p3 = (float(width), float(height))
+    p4 = (0.0, float(height))
+
+        # Añadir líneas
+        msp.add_line(p1, p2)
+        msp.add_line(p2, p3)
+        msp.add_line(p4, p1)
+
+    if deflection == 0:
+        msp.add_line(p4, p1)
+    elif deflection > 0:
+        # Punto medio de arco
+        p5 = (float(width) / 2.0, float(height) - float(deflection))
+        # Añadir arco p3 → p5 → p4
+        cx, cy, r, start_ang, end_ang = circle_from_3_points(p3, p4, p5)
+        # Dibujar arco CCW
+        msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
+
+    # Rotar geometría en caso de confeccion al hilo:
+    if alhilo == true:
+        msp = rotate_hilo(msp, width)
+    
+    # Guardar a cadena de texto
+    text_stream = StringIO()
+    doc.write(text_stream)
+
+    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
+    dxf_bytes = text_stream.getvalue().encode(encoding)
+
+    return dxf_bytes
+
+def dxf_marcada_cremallera(width: float, height: float, deflection: float, perimetro_tubo: float, alhilo=false: bool) -> bytes:
+    '''
+    Genera el archivo DXF de marcada con o sin curva para corte cremallera.
+    Genera el recortee superior para primera vuelta del tubo.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
+    '''
+    # Datos de geometría para geeneración de marcada
+    L_vuelta = perimetro_tubo
+    A_vuelta = 15
+    R_vuelta = 10
+
+    # Crear documento (DXF2010)
+    doc = ezdxf.new(dxfversion="R2010", setup=True)
+    msp = doc.modelspace()
+
+    # Puntos de marcada
+    p1 = (0.0, 0.0)
+    p2 = (float(width), 0.0)
+    p3 = (float(width), float(height)- float(L_vuelta))
+    p4 = (float(width)- float(A_vuelta) + float(R_vuelta), float(height)- float(L_vuelta))
+    p5 = (float(width)- float(A_vuelta), float(height)- float(L_vuelta) + float(R_vuelta))
+    c1 = (float(width)- float(A_vuelta) + float(R_vuelta), float(height)- float(L_vuelta) + float(R_vuelta)) #centro de arco 1
+    p6 = (float(width)- float(A_vuelta), float(height))
+    p7 = (float(A_vuelta), float(height))
+    p8 = (float(A_vuelta), float(height) - float(L_vuelta) + float(R_vuelta))
+    c2 = (float(A_vuelta) - float(R_vuelta), float(height) - float(L_vuelta) + float(R_vuelta)) #centro de arco 2
+    p9 = (float(A_vuelta) - float(R_vuelta), float(height) - float(L_vuelta) + float(R_vuelta))
+    p10 = (0.0, float(height) - float(L_vuelta))
+
+    # Generar geometría
+    msp.add_line(p1, p2)
+    msp.add_line(p2, p3)
+    msp.add_line(p3, p4)
+    msp.add_arc(c1, radius=R_vuelta, start_angle=180, end_angle=270)
+    msp.add_line(p5, p6)
+
+    if deflection == 0:
+        msp.add_line(p6, p7)
+    elif deflection > 0:
+        # Punto medio de arco
+        pc = (float(width) / 2.0, float(height) - float(deflection))
+        # Añadir arco p6 → p7 → pc
+        cx, cy, r, start_ang, end_ang = circle_from_3_points(p6, p7, pc)
+        # Dibujar arco CCW
+        msp.add_arc(center=(cx, cy), radius=r, start_angle=start_ang, end_angle=end_ang)
+    
+    msp.add_line(p7, p8)
+    msp.add_arc(c2, radius=R_vuelta, start_angle=270, end_angle=360)
+    msp.add_line(p9, p10)
+
+    # Rotar geometría en caso de confeccion al hilo:
+    if alhilo == true:
+        msp = rotate_hilo(msp, width)
+    
+    # Guardar a cadena de texto
+    text_stream = StringIO()
+    doc.write(text_stream)
+
+    encoding = getattr(doc, "output_encoding", "utf-8") or "utf-8"
+    dxf_bytes = text_stream.getvalue().encode(encoding)
+
+    return dxf_bytes
+
+
 # Main
 
 def main():
@@ -188,26 +202,31 @@ def main():
     )
 
     # Nombre de archivo DXF a generar y flecha de tubo
-    file_name = st.text_input("Introduce aquí el nombre del archivo que se generará:")
     col1, col2 = st.columns(2)
-    
     with col1:
+        file_name = st.text_input("Nombre del archivo que se generará:")
+    with col2:
+        marc_type = st.selectbox("Tipo de marcada:", options=["Marcada sin cremallera", "Marcada para cremallera (Tubo 55)", "Marcada para cremallera (Tubo 65)", "Marcada para cremallera (Tubo 80)"], index=0)
+
+    col3, col4 = st.columns(2)
+    
+    with col3:
         deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f")
     
-    with col2:
+    with col4:
         confection = st.selectbox("Confección:", options=["Hilo o través según medida", "Forzar confección atravesada"], index=0)
 
 
     st.markdown("---")
 
     # Inputs
-    col3, col4 = st.columns(2)
+    col5, col6 = st.columns(2)
 
-    with col3:
+    with col5:
         units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
         roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
 
-    with col4:
+    with col6:
         width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
         height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
 
@@ -248,46 +267,43 @@ def main():
             roll_width_mm = roll_width
 
         # Generación de marcadas
-        if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
-            # Confección al hilo
-            if deflection == 0:
-                st.success(f"Generando marcada sin curva para confección al hilo en DXF...")
-            else:
-                st.success(f"Generando marcada curva para confección al hilo en DXF...")
-            dxf_bytes = create_dxf_hilo_bytes(width_mm, height_mm, deflection)
-            out_name = f"{file_name}.dxf"
-            st.session_state.dxf_files.append((out_name, dxf_bytes))
+        if marc_type == "Marcada sin cremallera":
 
+            if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
+                # Confección al hilo
+                if deflection == 0:
+                    st.success(f"Generando marcada sin curva para confección al hilo en DXF...")
+                else:
+                    st.success(f"Generando marcada curva para confección al hilo en DXF...")
+                dxf_bytes = dxf_marcada_rectangular(width_mm, height_mm, deflection, alhilo=true)
+                out_name = f"{file_name}.dxf"
+                st.session_state.dxf_files.append((out_name, dxf_bytes))
+
+            else:
+                # Confección al través
+                n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
+                if deflection == 0:
+                    st.success(f"Generando {n_files} marcadas sin curva para confección atravesada en DXF...")
+                else:
+                    st.success(f"Generando {n_files} marcadas con curva para confección atravesada en DXF...")
+                pad = 2 if n_files > 1 else 0
+                height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
+                height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
+                if (height_remaining - deflection) < conf_remainingminimum:
+                    height_remaining = conf_remainingminimum + deflection
+
+                for i in range(1, n_files + 1):
+                    if i < n_files:
+                        # paños rectangulares
+                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                        dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
+                        st.session_state.dxf_files.append((out_name, dxf_bytes))
+                    elif i == n_files:
+                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                        dxf_bytes = dxf_marcada_rectangular(width_mm, height_remaining, deflection)
+                        st.session_state.dxf_files.append((out_name, dxf_bytes))
         else:
-            # Confección al través
-            n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
-            if deflection == 0:
-                st.success(f"Generando {n_files} marcadas sin curva para confección atravesada en DXF...")
-            else:
-                st.success(f"Generando {n_files} marcadas con curva para confección atravesada en DXF...")
-            pad = 2 if n_files > 1 else 0
-            height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
-            height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
-            if (height_remaining - deflection) < conf_remainingminimum:
-                height_remaining = conf_remainingminimum + deflection
-
-            for i in range(1, n_files + 1):
-                if i < n_files:
-                    # paños rectangulares
-                    out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                    dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_rectangles)
-                    st.session_state.dxf_files.append((out_name, dxf_bytes))
-                elif i == n_files:
-                    if deflection == 0:
-                        # paño sin curva
-                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = create_dxf_rectangletraves_bytes(width_mm, height_remaining)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
-                    else:
-                        # paño con curva
-                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = create_dxf_rectangletravescurva_bytes(width_mm, height_remaining, deflection)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
+            pass
 
     # Mostrar botones de descarga de DXFs
     if st.session_state.dxf_files:
