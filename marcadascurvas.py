@@ -275,7 +275,7 @@ def main():
                     st.success(f"Generando marcada sin curva para confección al hilo en DXF...")
                 else:
                     st.success(f"Generando marcada curva para confección al hilo en DXF...")
-                dxf_bytes = dxf_marcada_rectangular(width_mm, height_mm, deflection, alhilo=true)
+                dxf_bytes = dxf_marcada_rectangular(width_mm, height_mm, deflection, alhilo=True)
                 out_name = f"{file_name}.dxf"
                 st.session_state.dxf_files.append((out_name, dxf_bytes))
 
