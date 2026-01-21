@@ -304,7 +304,21 @@ def main():
                         dxf_bytes = dxf_marcada_rectangular(width_mm, height_remaining, deflection)
                         st.session_state.dxf_files.append((out_name, dxf_bytes))
         else:
-            pass
+
+            if marc_type == "Marcada para cremallera (Tubo 55)":
+                perimetro = 120
+            elif marc_type == "Marcada para cremallera (Tubo 65)":
+                perimetro = 200
+            elif marc_type == "Marcada para cremallera (Tubo 80)":
+                perimetro = 250
+
+            if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
+                dxf_bytes = dxf_marcada_rectangular(width_mm, height_mm, deflection, perimetro, alhilo=True)
+                st.session_state.dxf_files.append((out_name, dxf_bytes))
+            else:
+                pass
+                #seccion marcada zip atravesada
+
 
     # Mostrar botones de descarga de DXFs
     if st.session_state.dxf_files:
