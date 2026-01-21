@@ -152,7 +152,7 @@ def dxf_marcada_cremallera(width: float, height: float, deflection: float, perim
     p7 = (float(A_vuelta), float(height))
     p8 = (float(A_vuelta), float(height) - float(L_vuelta) + float(R_vuelta))
     c2 = (float(A_vuelta) - float(R_vuelta), float(height) - float(L_vuelta) + float(R_vuelta)) #centro de arco 2
-    p9 = (float(A_vuelta) - float(R_vuelta), float(height) - float(L_vuelta) + float(R_vuelta))
+    p9 = (float(A_vuelta) - float(R_vuelta), float(height) - float(L_vuelta))
     p10 = (0.0, float(height) - float(L_vuelta))
 
     # Generar geometría
@@ -175,6 +175,7 @@ def dxf_marcada_cremallera(width: float, height: float, deflection: float, perim
     msp.add_line(p7, p8)
     msp.add_arc(c2, radius=R_vuelta, start_angle=270, end_angle=360)
     msp.add_line(p9, p10)
+    msp.add_line(p10, p1)
 
     # Rotar geometría en caso de confeccion al hilo:
     if alhilo == True:
