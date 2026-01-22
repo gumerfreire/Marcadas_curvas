@@ -207,17 +207,17 @@ def main():
     # Nombre de archivo DXF a generar y flecha de tubo
     col1, col2 = st.columns(2)
     with col1:
-        file_name = st.text_input("Nombre del archivo que se generará:")
+        file_name = st.text_input("Nombre del archivo de marcada:")
     with col2:
         marc_type = st.selectbox("Tipo de marcada:", options=["Marcada sin cremallera", "Marcada para cremallera (Tubo 55)", "Marcada para cremallera (Tubo 65)", "Marcada para cremallera (Tubo 80)"], index=0)
 
     col3, col4 = st.columns(2)
     
     with col3:
-        deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=10.0, format="%.1f")
+        deflection = st.number_input("Flecha de tubo (mm):", min_value=0.0, step=0.01, value=0.0, format="%.1f")
     
     with col4:
-        confection = st.selectbox("Confección:", options=["Hilo o través según medida", "Forzar confección atravesada"], index=0)
+        confection = st.selectbox("Confección hilo o través:", options=["Hilo o través según medida", "Forzar confección atravesada"], index=0)
 
 
     st.markdown("---")
@@ -226,12 +226,12 @@ def main():
     col5, col6 = st.columns(2)
 
     with col5:
-        units = st.selectbox("Unidad de medida", options=["Centímetros", "Inches"], index=0)
-        roll_width = st.number_input("Ancho rollo de tela", min_value=1, step=1, value=1, format="%d")
+        units = st.selectbox("Unidad de medida (cm/inches)", options=["Centímetros", "Inches"], index=0)
+        roll_width = st.number_input("Ancho rollo de tela (cm/inches)", min_value=1, step=1, value=1, format="%d")
 
     with col6:
-        width = st.number_input("Ancho tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
-        height = st.number_input("Alto tela (como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
+        width = st.number_input("Ancho tela (cm/inches, como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
+        height = st.number_input("Alto tela (cm/inches, como indica la OF)", min_value=0.0, step=0.1, format="%.2f")
 
     # Inicializar sesión para mantener botones Descarga DXF
     if "dxf_files" not in st.session_state:
@@ -308,11 +308,16 @@ def main():
         else:
             # SECCION CON CREMALLERA
             if marc_type == "Marcada para cremallera (Tubo 55)":
-                perimetro = 120
+                perimetro = 172
             elif marc_type == "Marcada para cremallera (Tubo 65)":
-                perimetro = 200
+                perimetro = 204
             elif marc_type == "Marcada para cremallera (Tubo 80)":
-                perimetro = 250
+                perimetro = 251
+
+            if deflection == 0:
+                st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
+            else:
+                st.success(f"Generando marcada ZIP curva para confección al hilo en DXF...")
 
             if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
                 out_name = f"{file_name}.dxf"
@@ -322,9 +327,9 @@ def main():
                 # Confección al través
                 n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
                 if deflection == 0:
-                    st.success(f"Generando {n_files} marcadas sin curva para confección atravesada en DXF...")
+                    st.success(f"Generando {n_files} marcadas ZIP sin curva para confección atravesada en DXF...")
                 else:
-                    st.success(f"Generando {n_files} marcadas con curva para confección atravesada en DXF...")
+                    st.success(f"Generando {n_files} marcadas ZIP con curva para confección atravesada en DXF...")
                 pad = 2 if n_files > 1 else 0
                 height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
                 height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
