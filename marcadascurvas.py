@@ -332,7 +332,7 @@ def main():
                 if (height_remaining - deflection) < conf_remainingminimum:
                     height_remaining = conf_remainingminimum + deflection
                 #check para evitar que el termosoldado quede en la zona de curva de rebaje
-                if (L_vuelta - R_vuelta - conf_seamoverlap) < height_remaining < (perimetro + conf_seamoverlap):
+                if (perimetro - R_vuelta - conf_seamoverlap) < height_remaining < (perimetro + conf_seamoverlap):
                     height_remaining = perimetro + conf_seamoverlap
 
                 for i in range(1, n_files + 1):
