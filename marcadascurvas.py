@@ -331,7 +331,10 @@ def main():
                         st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
                     else:
                         st.success(f"Generando marcada ZIP curva para confección al hilo en DXF...")
+                    
+                    out_name = f"{file_name}.dxf"
                     dxf_bytes = dxf_marcada_cremallera(width_mm, height_mm, deflection, perimetro)
+                    st.session_state.dxf_files.append((out_name, dxf_bytes))
 
                 else:
                     if deflection == 0:
