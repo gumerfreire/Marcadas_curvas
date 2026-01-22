@@ -358,7 +358,7 @@ def main():
                         st.session_state.dxf_files.append((out_name, dxf_bytes))
 
                         out_name = f"{file_name}_{i+1:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_cremallera(width_mm, height_remaining, 0, perimetro)
+                        dxf_bytes = dxf_marcada_cremallera(width_mm, height_remaining, deflection, perimetro)
                         st.session_state.dxf_files.append((out_name, dxf_bytes))
 
 
