@@ -314,58 +314,65 @@ def main():
             elif marc_type == "Marcada para cremallera (Tubo 80)":
                 perimetro = 251
 
-            if deflection == 0:
-                st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
-            else:
-                st.success(f"Generando marcada ZIP curva para confección al hilo en DXF...")
-
             if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
+                if deflection == 0:
+                    st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
+                else:
+                    st.success(f"Generando marcada ZIP curva para confección al hilo en DXF...")
                 out_name = f"{file_name}.dxf"
                 dxf_bytes = dxf_marcada_cremallera(width_mm, height_mm, deflection, perimetro, alhilo=True)
                 st.session_state.dxf_files.append((out_name, dxf_bytes))
             else:
                 # Confección al través
                 n_files = math.ceil(height_mm / (roll_width_mm - roll_edgetrim))
-                if deflection == 0:
-                    st.success(f"Generando {n_files} marcadas ZIP sin curva para confección atravesada en DXF...")
+                
+                if n_files == 1:
+                    if deflection == 0:
+                        st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
+                    else:
+                        st.success(f"Generando marcada ZIP curva para confección al hilo en DXF...")
+                    dxf_bytes = dxf_marcada_cremallera(width_mm, height_mm, deflection, perimetro)
+
                 else:
-                    st.success(f"Generando {n_files} marcadas ZIP con curva para confección atravesada en DXF...")
-                pad = 2 if n_files > 1 else 0
-                height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
-                height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
-                #check si el último paño es menor al mínimo
-                if (height_remaining - deflection) < conf_remainingminimum:
-                    height_remaining = conf_remainingminimum + deflection
-                #check para evitar que el termosoldado quede en la zona de curva de rebaje
-                if (perimetro - R_vuelta - conf_seamoverlap) < height_remaining < (perimetro + conf_seamoverlap):
-                    height_remaining = perimetro + conf_seamoverlap
+                    if deflection == 0:
+                        st.success(f"Generando {n_files} marcadas ZIP sin curva para confección atravesada en DXF...")
+                    else:
+                        st.success(f"Generando {n_files} marcadas ZIP con curva para confección atravesada en DXF...")
+                    pad = 2 if n_files > 1 else 0
+                    height_rectangles = roll_width_mm - roll_edgetrim  # Alturas de marcadas inferiores
+                    height_remaining = height_mm - ((n_files - 1) * (roll_width_mm-roll_edgetrim)) + ((n_files - 1) * conf_seamoverlap)
+                    #check si el último paño es menor al mínimo
+                    if (height_remaining - deflection) < conf_remainingminimum:
+                        height_remaining = conf_remainingminimum + deflection
+                    #check para evitar que el termosoldado quede en la zona de curva de rebaje
+                    if (perimetro - R_vuelta - conf_seamoverlap) < height_remaining < (perimetro + conf_seamoverlap):
+                        height_remaining = perimetro + conf_seamoverlap
 
-                for i in range(1, n_files + 1):
-                    if i < n_files - 2:
-                        # paños rectangulares
-                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
-                    elif (i == n_files - 1) and (height_remaining < perimetro):
-                        # paño con curva en penultimo paño y ultimo con rebaje
-                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_cremallera(width_mm, height_rectangles, 0, perimetro-height_remaining)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
+                    for i in range(1, n_files + 1):
+                        if i < n_files - 2:
+                            # paños rectangulares
+                            out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                            dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
+                            st.session_state.dxf_files.append((out_name, dxf_bytes))
+                        elif (i == n_files - 1) and (height_remaining < perimetro):
+                            # paño con curva en penultimo paño y ultimo con rebaje
+                            out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                            dxf_bytes = dxf_marcada_cremallera(width_mm, height_rectangles, 0, perimetro-height_remaining)
+                            st.session_state.dxf_files.append((out_name, dxf_bytes))
 
-                        out_name = f"{file_name}_{i+1:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_rectangular(width_mm - 2*A_vuelta, height_remaining, deflection)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
-                    
-                    elif (i == n_files - 1) and (height_remaining > perimetro):
-                        # paño con curva en ultimo paño
-                        out_name = f"{file_name}_{i:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
+                            out_name = f"{file_name}_{i+1:0{pad}d}.dxf"
+                            dxf_bytes = dxf_marcada_rectangular(width_mm - 2*A_vuelta, height_remaining, deflection)
+                            st.session_state.dxf_files.append((out_name, dxf_bytes))
+                        
+                        elif (i == n_files - 1) and (height_remaining > perimetro):
+                            # paño con curva en ultimo paño
+                            out_name = f"{file_name}_{i:0{pad}d}.dxf"
+                            dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
+                            st.session_state.dxf_files.append((out_name, dxf_bytes))
 
-                        out_name = f"{file_name}_{i+1:0{pad}d}.dxf"
-                        dxf_bytes = dxf_marcada_cremallera(width_mm, height_remaining, deflection, perimetro)
-                        st.session_state.dxf_files.append((out_name, dxf_bytes))
-
+                            out_name = f"{file_name}_{i+1:0{pad}d}.dxf"
+                            dxf_bytes = dxf_marcada_cremallera(width_mm, height_remaining, deflection, perimetro)
+                            st.session_state.dxf_files.append((out_name, dxf_bytes))
 
     # Mostrar botones de descarga de DXFs
     if st.session_state.dxf_files:
