@@ -1,4 +1,4 @@
-# Marcadas_curvas
+# Marcadas curvas / Zip
 App para Streamlit. Generadorr de marcadas para corte de tela.
 
 Estaa app permite generar archivos DXF para máquinas de corte de tela. Implementa las siguientes opciones:
