@@ -7,12 +7,12 @@ Estaa app permite generar archivos DXF para máquinas de corte de tela. Implemen
 - Generación de marcadas con recorte específico para sistemas Zip.
 
 Introducción de datos en la aplicación:
-1 – Nombre del archivo de marcada
-2 – Flecha de tubo
-3 – Tipo de marcada
-4 – Confección hilo o través
-5 – Unidad de medida
-6 – Ancho de rollo de tela
-7, 8 – Ancho y alto de tela
+- Nombre del archivo de marcada
+- Flecha de tubo
+- Tipo de marcada
+- Confección hilo o través
+- Unidad de medida
+- Ancho de rollo de tela
+- Ancho y alto de tela
 
 El botón de Generar marcadas DXF permite obtener uno o varios archivos DXF para introrucir en las máquinas de corte.
