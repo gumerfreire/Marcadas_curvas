@@ -3,6 +3,7 @@ MARCADAS CURVAS
 
 App para Streamlit escrita en Python.
 Dibuja marcadas para máquinas de corte.
+Se implementa la posibilidad de hacer marcadas ZIP.
 
 Gumer Freire, 2025
 '''
@@ -18,9 +19,9 @@ roll_edgetrim = 20 # Margen para saneamiento de borde de rollo de tela, en milí
 conf_remainingminimum = 100 # Alto mínimo del último tramo de tela atravesada. Si es menor, se hace de este alto.
 conf_seamoverlap = 10 # Solape de telas para empalme en mm.
 
-# Datos de geometría para geeneración de rebajes de cremallera
-A_vuelta = 15
-R_vuelta = 10
+# Datos de geometría para geeneración de rebajes de cremallera, een milímetros.
+A_vuelta = 15 # Ancho de recorte para marcadas ZIP.
+R_vuelta = 10 # Radio de curva para zona de rebaje en marcadas ZIP.
 
 def circle_from_3_points(p1, p2, p3):
     """
@@ -69,10 +70,9 @@ def circle_from_3_points(p1, p2, p3):
 def rotate_hilo(msp, disp):
     '''
     Función auxiliar.
-    Rota la geometría para adaptar la marcada a la dirección de corte al hilo.
-    
-    msp: Modelspace de EZDXF
-    disp: Desplazamiento vertical de la geometría para volvera colocarla en el punto 0,0
+    Rota la geometría 90 grados para adaptar la marcada a la dirección de corte al hilo.
+    La geometría se posiciona de nuevo en el punto 0,0.
+    devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
     '''
 
     angle_deg = -90
@@ -89,7 +89,6 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
     '''
     Genera el archivo DXF de marcada rectangular con o sin curva.
     Implementa la opción de girar la marcada para dirección al hilo.
-    con los datos introduciros width, height.
     devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
     '''
     # Crear documento (DXF2010)
@@ -133,7 +132,8 @@ def dxf_marcada_rectangular(width: float, height: float, deflection: float, alhi
 def dxf_marcada_cremallera(width: float, height: float, deflection: float, perimetro_tubo: float, alhilo: bool = False) -> bytes:
     '''
     Genera el archivo DXF de marcada con o sin curva para corte cremallera.
-    Genera el recortee superior para primera vuelta del tubo.
+    Implementa la opción de girar la marcada para dirección al hilo.
+    Genera el recorte superior para primera vuelta del tubo.
     devuelve el contenido del archivo DXF como bytes (para descarga Streamlit).
     '''
     L_vuelta = perimetro_tubo
@@ -193,7 +193,6 @@ def dxf_marcada_cremallera(width: float, height: float, deflection: float, perim
 
 
 # Main
-
 def main():
     st.markdown("### Generador de marcadas con curva / ZIP")
 
@@ -271,7 +270,7 @@ def main():
 
         # Generación de marcadas
         if marc_type == "Marcada sin cremallera":
-            # SECCION SIN CREMALLERA
+        # SECCION SIN CREMALLERA
             if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
                 # Confección al hilo
                 if deflection == 0:
@@ -306,15 +305,17 @@ def main():
                         dxf_bytes = dxf_marcada_rectangular(width_mm, height_remaining, deflection)
                         st.session_state.dxf_files.append((out_name, dxf_bytes))
         else:
-            # SECCION CON CREMALLERA
+        # SECCION CON CREMALLERA
+            # Selección de longitud de rebaje en función de tubo
             if marc_type == "Marcada para cremallera (Tubo 55)":
                 perimetro = 172
             elif marc_type == "Marcada para cremallera (Tubo 65)":
                 perimetro = 204
             elif marc_type == "Marcada para cremallera (Tubo 80)":
                 perimetro = 251
-
+            
             if width_mm <= (roll_width_mm - roll_edgetrim) and confection == "Hilo o través según medida":
+                # Confección al hilo
                 if deflection == 0:
                     st.success(f"Generando marcada ZIP sin curva para confección al hilo en DXF...")
                 else:
@@ -352,7 +353,7 @@ def main():
                         height_remaining = perimetro + conf_seamoverlap
 
                     for i in range(1, n_files + 1):
-                        if i < n_files - 2:
+                        if i <= n_files - 2:
                             # paños rectangulares
                             out_name = f"{file_name}_{i:0{pad}d}.dxf"
                             dxf_bytes = dxf_marcada_rectangular(width_mm, height_rectangles, 0)
